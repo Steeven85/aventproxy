@@ -18,13 +18,20 @@ from .const import (
     DOMAIN,
     DPS_ALARM_RECORD,
     DPS_ALERT_EVENT,
+    DPS_CRY_DET_SWITCH,
     DPS_DECIBEL_EVENT,
     DPS_LULLABY_STATE,
     DPS_MOTION_SWITCH,
+    DPS_NO_SENSEIQ_SIGNAL,
 )
 from .coordinator import PhilipsAventCoordinator
 from .entity import build_device_info
-from .events import is_new_event, motion_event_timestamp, sound_event_timestamp
+from .events import (
+    cry_event_timestamp,
+    is_new_event,
+    motion_event_timestamp,
+    sound_event_timestamp,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +49,12 @@ async def async_setup_entry(
             AventMotionDetected(coordinator, cam_id),
             AventSoundDetected(coordinator, cam_id),
         ])
+        # SenseIQ presence, only on monitors that report it (DPS 15 present).
+        if DPS_NO_SENSEIQ_SIGNAL in (coordinator.data or {}):
+            entities.append(AventBabyDetected(coordinator, cam_id))
+        # Dedicated crying alert, on monitors advertising cry detection (DPS 12).
+        if DPS_CRY_DET_SWITCH in (coordinator.data or {}):
+            entities.append(AventCryDetected(coordinator, cam_id))
     async_add_entities(entities)
 
 
@@ -154,6 +167,34 @@ class AventMotionDetected(CoordinatorEntity, BinarySensorEntity):
             self._clear_unsub()
 
 
+class AventBabyDetected(CoordinatorEntity, BinarySensorEntity):
+    """Whether SenseIQ currently sees the baby in the crib.
+
+    DPS 15 ``no_senseiq_signal`` is True when SenseIQ has no signal — the app's
+    "Baby not found / Scanning crib" state — so presence is its inverse. This is
+    the companion to the breathing and sleep sensors: while it is off, those read
+    unknown because SenseIQ has nothing to report.
+    """
+
+    _attr_has_entity_name = True
+    _attr_name = "Baby Detected"
+    _attr_icon = "mdi:baby-face-outline"
+    _attr_device_class = BinarySensorDeviceClass.OCCUPANCY
+
+    def __init__(self, coordinator: PhilipsAventCoordinator, cam_id: str):
+        super().__init__(coordinator)
+        self._cam_id = cam_id
+        self._attr_unique_id = f"{cam_id}_baby_detected"
+        self._attr_device_info = build_device_info(coordinator, cam_id)
+
+    @property
+    def is_on(self) -> bool | None:
+        dps = self.coordinator.data
+        if dps and DPS_NO_SENSEIQ_SIGNAL in dps:
+            return not bool(dps[DPS_NO_SENSEIQ_SIGNAL])
+        return None
+
+
 class AventSoundDetected(CoordinatorEntity, BinarySensorEntity):
     """Sound alerts, from whichever DPS the monitor reports them on.
 
@@ -205,6 +246,74 @@ class AventSoundDetected(CoordinatorEntity, BinarySensorEntity):
             self._last_alarm_timestamp = timestamp
             return True
 
+        if timestamp is not None and self._last_alarm_timestamp is None:
+            self._last_alarm_timestamp = timestamp
+        return False
+
+    @callback
+    def _schedule_clear(self) -> None:
+        if self._clear_unsub:
+            self._clear_unsub()
+        self._clear_unsub = async_call_later(
+            self.hass, ALERT_CLEAR_SECONDS, self._clear_alert
+        )
+
+    @callback
+    def _clear_alert(self, _now=None) -> None:
+        self._is_on = False
+        self._clear_unsub = None
+        self.async_write_ha_state()
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._clear_unsub:
+            self._clear_unsub()
+
+
+class AventCryDetected(CoordinatorEntity, BinarySensorEntity):
+    """Crying alerts (``ipc_baby_cry`` / ``ipc_cry``): the SenseIQ family's cry
+    detection, as a dedicated companion to "Sound Detected".
+
+    Fires only on a cry, from the timestamped DPS 212 alarm record, and
+    auto-clears after ALERT_CLEAR_SECONDS. "Sound Detected" still fires too, so
+    remove the cry commands from SOUND_COMMANDS in events.py if you want strict
+    separation instead.
+    """
+
+    _attr_has_entity_name = True
+    _attr_name = "Crying Detected"
+    _attr_icon = "mdi:emoticon-cry-outline"
+    _attr_device_class = BinarySensorDeviceClass.SOUND
+
+    def __init__(self, coordinator: PhilipsAventCoordinator, cam_id: str):
+        super().__init__(coordinator)
+        self._cam_id = cam_id
+        self._attr_unique_id = f"{cam_id}_crying_detected"
+        self._attr_device_info = build_device_info(coordinator, cam_id)
+        self._is_on = False
+        self._clear_unsub = None
+        self._last_alarm_timestamp: float | None = None
+
+    @property
+    def is_on(self) -> bool:
+        return self._is_on
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        if self._cry_reported():
+            self._is_on = True
+            self._schedule_clear()
+        self.async_write_ha_state()
+
+    @callback
+    def _cry_reported(self) -> bool:
+        dps = self.coordinator.data or {}
+        timestamp = cry_event_timestamp(dps.get(DPS_ALARM_RECORD))
+        if is_new_event(timestamp, self._last_alarm_timestamp, time.time()):
+            self._last_alarm_timestamp = timestamp
+            _LOGGER.debug(
+                "Cry alarm record for %s at %s", self.coordinator.camera_name, timestamp
+            )
+            return True
         if timestamp is not None and self._last_alarm_timestamp is None:
             self._last_alarm_timestamp = timestamp
         return False

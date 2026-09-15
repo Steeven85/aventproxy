@@ -7,7 +7,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, DPS_BRIGHTNESS, DPS_LULLABY_VOLUME
+from .const import (
+    DOMAIN,
+    DPS_AWAKE_DELAY,
+    DPS_BRIGHTNESS,
+    DPS_LULLABY_VOLUME,
+    DPS_SENSEIQ_STATUS,
+)
 from .coordinator import PhilipsAventCoordinator
 from .entity import build_device_info
 
@@ -22,6 +28,12 @@ async def async_setup_entry(
             AventNumber(coordinator, cam_id, DPS_BRIGHTNESS, "Night Light Brightness", "mdi:brightness-6", 1, 100, 1, "%"),
             AventNumber(coordinator, cam_id, DPS_LULLABY_VOLUME, "Lullaby Volume", "mdi:volume-medium", 1, 100, 1, "%"),
         ])
+        # SenseIQ: delay before the "baby awake" alert fires (seconds).
+        dps = coordinator.data or {}
+        if DPS_SENSEIQ_STATUS in dps:
+            entities.append(
+                AventNumber(coordinator, cam_id, DPS_AWAKE_DELAY, "Awake Alert Delay", "mdi:timer-outline", 0, 600, 30, "s")
+            )
     async_add_entities(entities)
 
 

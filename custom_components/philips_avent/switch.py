@@ -11,9 +11,13 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN,
+    DPS_AWAKE_SWITCH,
+    DPS_CRY_DET_SWITCH,
     DPS_MOTION_SWITCH,
     DPS_NIGHT_LIGHT,
     DPS_PRIVACY_MODE,
+    DPS_SENSEIQ_STATUS,
+    DPS_SENSEIQ_SWITCH,
     DPS_SOUND_SWITCH,
 )
 from .coordinator import PhilipsAventCoordinator
@@ -32,6 +36,14 @@ async def async_setup_entry(
             AventSwitch(coordinator, cam_id, DPS_SOUND_SWITCH, "Sound Alert", "mdi:ear-hearing"),
             AventEnumSwitch(coordinator, cam_id, DPS_PRIVACY_MODE, "Privacy Mode", "mdi:eye-off"),
         ])
+        # SenseIQ controls, only on monitors that expose SenseIQ (DPS 3 present).
+        dps = coordinator.data or {}
+        if DPS_SENSEIQ_STATUS in dps:
+            entities.extend([
+                AventSwitch(coordinator, cam_id, DPS_SENSEIQ_SWITCH, "SenseIQ", "mdi:baby-face-outline"),
+                AventSwitch(coordinator, cam_id, DPS_AWAKE_SWITCH, "Awake Alert", "mdi:sleep-off"),
+                AventSwitch(coordinator, cam_id, DPS_CRY_DET_SWITCH, "Cry Alert", "mdi:emoticon-cry-outline"),
+            ])
     async_add_entities(entities)
 
 
