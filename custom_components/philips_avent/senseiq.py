@@ -78,6 +78,17 @@ def _to_int(value: object) -> int | None:
         return None
 
 
+def _to_nonneg_int(value: object) -> int | None:
+    """Coerce to a non-negative int, or None.
+
+    SenseIQ durations are never negative; a negative one is malformed and must
+    not become a reading (would break the totals and the sum(ssd)+cssd==sd
+    invariant).
+    """
+    secs = _to_int(value)
+    return secs if (secs is not None and secs >= 0) else None
+
+
 def _epoch(value: object) -> int | None:
     """Epoch seconds from a SenseIQ timestamp; tolerates milliseconds."""
     stamp = _to_int(value)
@@ -116,7 +127,7 @@ def decode_sleep_session(raw: object) -> dict | None:
             continue
         (code, seconds), = item.items()
         name = STAGE_NAMES.get(code)
-        secs = _to_int(seconds)
+        secs = _to_nonneg_int(seconds)
         if name is None or secs is None:
             continue
         stages.append({"stage": name, "seconds": secs})
@@ -124,9 +135,9 @@ def decode_sleep_session(raw: object) -> dict | None:
 
     return {
         "start": _epoch(data.get("st")),
-        "duration_seconds": _to_int(data.get("sd")),
+        "duration_seconds": _to_nonneg_int(data.get("sd")),
         "current_stage": STAGE_NAMES.get(data.get("css")),
-        "current_stage_seconds": _to_int(data.get("cssd")),
+        "current_stage_seconds": _to_nonneg_int(data.get("cssd")),
         "stages": stages,
         "totals_seconds": totals,
     }

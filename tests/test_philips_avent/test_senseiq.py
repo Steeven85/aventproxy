@@ -63,6 +63,20 @@ def test_sleep_session_rejects_non_session():
     assert senseiq.decode_sleep_session(None) is None
 
 
+def test_sleep_session_rejects_negative_durations():
+    # A malformed negative duration must not become a reading, and a negative
+    # stage segment is dropped rather than skewing the totals.
+    s = senseiq.decode_sleep_session(
+        '{"st":1789409794,"sd":-5,"css":"l","cssd":-1,'
+        '"ssd":[{"l":100},{"d":-20},{"a":50}]}'
+    )
+    assert s is not None
+    assert s["duration_seconds"] is None
+    assert s["current_stage_seconds"] is None
+    assert s["stages"] == [{"stage": "light", "seconds": 100}, {"stage": "awake", "seconds": 50}]
+    assert s["totals_seconds"] == {"awake": 50, "light": 100, "deep": 0}
+
+
 def test_session_end_and_active():
     s = senseiq.decode_sleep_session(DP4_RAW)
     end = senseiq.session_end_timestamp(s)

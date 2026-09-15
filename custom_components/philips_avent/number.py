@@ -12,7 +12,6 @@ from .const import (
     DPS_AWAKE_DELAY,
     DPS_BRIGHTNESS,
     DPS_LULLABY_VOLUME,
-    DPS_SENSEIQ_STATUS,
 )
 from .coordinator import PhilipsAventCoordinator
 from .entity import build_device_info
@@ -30,7 +29,7 @@ async def async_setup_entry(
         ])
         # SenseIQ: delay before the "baby awake" alert fires (seconds).
         dps = coordinator.data or {}
-        if DPS_SENSEIQ_STATUS in dps:
+        if DPS_AWAKE_DELAY in dps:
             entities.append(
                 AventNumber(coordinator, cam_id, DPS_AWAKE_DELAY, "Awake Alert Delay", "mdi:timer-outline", 0, 600, 30, "s")
             )
