@@ -24,8 +24,8 @@ async def async_setup_entry(
     entities = []
     for cam_id, coordinator in data["coordinators"].items():
         entities.extend([
-            AventNumber(coordinator, cam_id, DPS_BRIGHTNESS, "Night Light Brightness", "mdi:brightness-6", 1, 100, 1, "%"),
-            AventNumber(coordinator, cam_id, DPS_LULLABY_VOLUME, "Lullaby Volume", "mdi:volume-medium", 1, 100, 1, "%"),
+            AventNumber(coordinator, cam_id, DPS_BRIGHTNESS, None, "mdi:brightness-6", 1, 100, 1, "%", translation_key="night_light_brightness"),
+            AventNumber(coordinator, cam_id, DPS_LULLABY_VOLUME, None, "mdi:volume-medium", 1, 100, 1, "%", translation_key="lullaby_volume"),
         ])
         # SenseIQ: delay before the "baby awake" alert fires (seconds).
         dps = coordinator.data or {}

@@ -61,7 +61,7 @@ async def async_setup_entry(
 
 class AventLullabyPlaying(CoordinatorEntity, BinarySensorEntity):
     _attr_has_entity_name = True
-    _attr_name = "Lullaby Playing"
+    _attr_translation_key = "lullaby_playing"
     _attr_icon = "mdi:music"
     _attr_device_class = BinarySensorDeviceClass.RUNNING
 
@@ -95,7 +95,7 @@ class AventMotionDetected(CoordinatorEntity, BinarySensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_name = "Motion Detected"
+    _attr_translation_key = "motion_detected"
     _attr_device_class = BinarySensorDeviceClass.MOTION
 
     def __init__(self, coordinator: PhilipsAventCoordinator, cam_id: str):
@@ -204,7 +204,7 @@ class AventSoundDetected(CoordinatorEntity, BinarySensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_name = "Sound Detected"
+    _attr_translation_key = "sound_detected"
     _attr_device_class = BinarySensorDeviceClass.SOUND
 
     def __init__(self, coordinator: PhilipsAventCoordinator, cam_id: str):

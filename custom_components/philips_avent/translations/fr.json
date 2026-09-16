@@ -102,17 +102,34 @@
         "name": "Erreurs de l'appareil"
       }
     },
+    "binary_sensor": {
+      "lullaby_playing": {
+        "name": "Berceuse en cours"
+      },
+      "motion_detected": {
+        "name": "Mouvement détecté"
+      },
+      "sound_detected": {
+        "name": "Son détecté"
+      },
+      "baby_detected": {
+        "name": "Bébé détecté"
+      },
+      "crying_detected": {
+        "name": "Pleurs détectés"
+      }
+    },
     "switch": {
-      "138": {
+      "night_light": {
         "name": "Veilleuse"
       },
-      "136": {
+      "motion_alert": {
         "name": "Alerte mouvement"
       },
-      "137": {
+      "sound_alert": {
         "name": "Alerte son"
       },
-      "105": {
+      "privacy_mode": {
         "name": "Mode privé"
       },
       "senseiq": {
@@ -126,14 +143,28 @@
       }
     },
     "number": {
-      "158": {
+      "night_light_brightness": {
         "name": "Luminosité de la veilleuse"
       },
-      "209": {
+      "lullaby_volume": {
         "name": "Volume de la berceuse"
       },
       "awake_alert_delay": {
         "name": "Délai d'alerte réveil"
+      }
+    },
+    "select": {
+      "lullaby_track": {
+        "name": "Berceuse"
+      },
+      "play_mode": {
+        "name": "Mode de lecture"
+      },
+      "lullaby_timer": {
+        "name": "Minuterie berceuse"
+      },
+      "night_light_timer": {
+        "name": "Minuterie veilleuse"
       }
     },
     "button": {
@@ -151,37 +182,6 @@
       },
       "lullaby_prev": {
         "name": "Berceuse précédente"
-      }
-    },
-    "select": {
-      "lullaby_track": {
-        "name": "Berceuse"
-      },
-      "play_mode": {
-        "name": "Mode de lecture"
-      },
-      "212_timer": {
-        "name": "Minuterie berceuse"
-      },
-      "211_timer": {
-        "name": "Minuterie veilleuse"
-      }
-    },
-    "binary_sensor": {
-      "lullaby_playing": {
-        "name": "Berceuse en cours"
-      },
-      "motion_detected": {
-        "name": "Mouvement détecté"
-      },
-      "sound_detected": {
-        "name": "Son détecté"
-      },
-      "baby_detected": {
-        "name": "Bébé détecté"
-      },
-      "crying_detected": {
-        "name": "Pleurs détectés"
       }
     },
     "camera": {

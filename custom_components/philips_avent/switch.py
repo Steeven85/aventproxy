@@ -30,10 +30,10 @@ async def async_setup_entry(
     entities = []
     for cam_id, coordinator in data["coordinators"].items():
         entities.extend([
-            AventSwitch(coordinator, cam_id, DPS_NIGHT_LIGHT, "Night Light", "mdi:lightbulb-night"),
-            AventSwitch(coordinator, cam_id, DPS_MOTION_SWITCH, "Motion Alert", "mdi:motion-sensor"),
-            AventSwitch(coordinator, cam_id, DPS_SOUND_SWITCH, "Sound Alert", "mdi:ear-hearing"),
-            AventEnumSwitch(coordinator, cam_id, DPS_PRIVACY_MODE, "Privacy Mode", "mdi:eye-off"),
+            AventSwitch(coordinator, cam_id, DPS_NIGHT_LIGHT, None, "mdi:lightbulb-night", translation_key="night_light"),
+            AventSwitch(coordinator, cam_id, DPS_MOTION_SWITCH, None, "mdi:motion-sensor", translation_key="motion_alert"),
+            AventSwitch(coordinator, cam_id, DPS_SOUND_SWITCH, None, "mdi:ear-hearing", translation_key="sound_alert"),
+            AventEnumSwitch(coordinator, cam_id, DPS_PRIVACY_MODE, None, "mdi:eye-off", translation_key="privacy_mode"),
         ])
         # SenseIQ controls, each gated on its own data point so a monitor that
         # exposes only some of them still gets the right entities.

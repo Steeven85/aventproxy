@@ -66,7 +66,7 @@ class AventTemperatureSensor(CoordinatorEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
     _attr_has_entity_name = True
-    _attr_name = "Temperature"
+    _attr_translation_key = "temperature"
 
     def __init__(self, coordinator: PhilipsAventCoordinator, cam_id: str):
         super().__init__(coordinator)
@@ -87,7 +87,7 @@ class AventWifiSignalSensor(CoordinatorEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = SIGNAL_STRENGTH_DECIBELS_MILLIWATT
     _attr_has_entity_name = True
-    _attr_name = "WiFi Signal"
+    _attr_translation_key = "wifi_signal"
     _attr_icon = "mdi:wifi"
     _attr_entity_registry_enabled_default = True
 
