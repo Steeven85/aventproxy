@@ -63,6 +63,19 @@ def test_sleep_session_rejects_non_session():
     assert senseiq.decode_sleep_session(None) is None
 
 
+def test_is_baby_present():
+    # Breathing reported -> present.
+    assert senseiq.is_baby_present('{"r":"m","br":38}') is True
+    # A present-state flag with no breathing yet -> present.
+    assert senseiq.is_baby_present('{"r":"b","br":0}') is True
+    assert senseiq.is_baby_present('{"r":"a","br":0}') is True
+    # "o" = empty crib -> absent.
+    assert senseiq.is_baby_present('{"r":"o","br":0}') is False
+    # No SenseIQ status at all -> unknown.
+    assert senseiq.is_baby_present(None) is None
+    assert senseiq.is_baby_present('{"foo":1}') is None
+
+
 def test_sleep_session_rejects_negative_durations():
     # A malformed negative duration must not become a reading, and a negative
     # stage segment is dropped rather than skewing the totals.

@@ -113,7 +113,7 @@ centre — it rides these ordinary data points that `tuya.m.device.get` returns.
 | 11 | `awake_switch` | Baby-awake alert on/off | bool | rw | true/false |
 | 12 | `cry_det_switch` | Cry alert on/off | bool | rw | true/false |
 | 13 | `no_senseiq_switch` | "No SenseIQ signal" alert on/off | bool | rw | true/false |
-| 15 | `no_senseiq_signal` | No SenseIQ signal | bool | ro | true = no baby detected ("scanning crib") |
+| 15 | `no_senseiq_signal` | No SenseIQ signal | bool | ro | NOTE: does **not** track live presence — stayed set overnight while breathing/sleep were reported. Read presence from DPS 3 `r` instead. |
 | 16 | `refurbish_counter` | Refurbishment counter | value | ro | — |
 | 18 | `device_errors` | Errors | value | ro | 0 = no error |
 | 21 | `ext_functions` | Extended functions | value | rw | — |
@@ -124,7 +124,9 @@ centre — it rides these ordinary data points that `tuya.m.device.get` returns.
 {"r":"o","br":0}
 ```
 `br` is breaths per minute (0 while no baby is detected). `r` is a presence/state
-flag (`"o"` observed with no baby present).
+flag: `"o"` = no baby (empty crib); `"m"`, `"b"` and `"a"` were all observed
+while the baby was detected (over one night on an SCD9xx). Presence is therefore
+`r != "o"` (or `br > 0`).
 
 **DPS 4 `sleep_session_data`** — base64 of an ASCII-hex string of JSON:
 

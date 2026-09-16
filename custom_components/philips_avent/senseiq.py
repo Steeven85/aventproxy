@@ -113,6 +113,32 @@ def decode_status(raw: object) -> dict | None:
     }
 
 
+# Values of the DPS 3 ``r`` flag that mean "no baby present". Observed over a
+# night on an SCD9xx: ``o`` while the crib was empty, and ``m``/``b``/``a`` while
+# the baby was detected. DPS 15 (``no_senseiq_signal``) does NOT track live
+# presence — it stayed set all night while breathing and sleep were reported —
+# so presence is read from DPS 3 instead.
+PRESENCE_ABSENT_STATES = frozenset({"o"})
+
+
+def is_baby_present(raw: object) -> bool | None:
+    """Whether SenseIQ currently sees the baby, from DPS 3.
+
+    True when a breathing rate is reported or the ``r`` flag is a present-state;
+    False when ``r`` says absent (``o``); None when there is no SenseIQ status to
+    read (so the sensor is "unknown" rather than a false "away").
+    """
+    status = decode_status(raw)
+    if status is None:
+        return None
+    if status["breaths_per_minute"] is not None:
+        return True
+    state = status.get("state")
+    if not isinstance(state, str) or not state:
+        return None
+    return state not in PRESENCE_ABSENT_STATES
+
+
 def decode_sleep_session(raw: object) -> dict | None:
     """Decode DPS 4 (sleep_session_data)."""
     data = _decode_raw_json(raw)

@@ -14,6 +14,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import senseiq
 from .const import (
     DOMAIN,
     DPS_ALARM_RECORD,
@@ -22,7 +23,7 @@ from .const import (
     DPS_DECIBEL_EVENT,
     DPS_LULLABY_STATE,
     DPS_MOTION_SWITCH,
-    DPS_NO_SENSEIQ_SIGNAL,
+    DPS_SENSEIQ_STATUS,
 )
 from .coordinator import PhilipsAventCoordinator
 from .entity import build_device_info
@@ -49,8 +50,8 @@ async def async_setup_entry(
             AventMotionDetected(coordinator, cam_id),
             AventSoundDetected(coordinator, cam_id),
         ])
-        # SenseIQ presence, only on monitors that report it (DPS 15 present).
-        if DPS_NO_SENSEIQ_SIGNAL in (coordinator.data or {}):
+        # SenseIQ presence, from the live status (DPS 3).
+        if DPS_SENSEIQ_STATUS in (coordinator.data or {}):
             entities.append(AventBabyDetected(coordinator, cam_id))
         # Dedicated crying alert, on monitors advertising cry detection (DPS 12).
         if DPS_CRY_DET_SWITCH in (coordinator.data or {}):
@@ -170,10 +171,11 @@ class AventMotionDetected(CoordinatorEntity, BinarySensorEntity):
 class AventBabyDetected(CoordinatorEntity, BinarySensorEntity):
     """Whether SenseIQ currently sees the baby in the crib.
 
-    DPS 15 ``no_senseiq_signal`` is True when SenseIQ has no signal — the app's
-    "Baby not found / Scanning crib" state — so presence is its inverse. This is
-    the companion to the breathing and sleep sensors: while it is off, those read
-    unknown because SenseIQ has nothing to report.
+    Read from the live status (DPS 3): a reported breathing rate, or an ``r``
+    flag that is not the "no baby" value. DPS 15 (``no_senseiq_signal``) looked
+    like the right source but does not track live presence — it stayed set all
+    night on hardware while breathing and sleep were reported — so it is not
+    used here. The companion to the breathing and sleep sensors.
     """
 
     _attr_has_entity_name = True
@@ -189,10 +191,7 @@ class AventBabyDetected(CoordinatorEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        dps = self.coordinator.data
-        if dps and DPS_NO_SENSEIQ_SIGNAL in dps:
-            return not bool(dps[DPS_NO_SENSEIQ_SIGNAL])
-        return None
+        return senseiq.is_baby_present((self.coordinator.data or {}).get(DPS_SENSEIQ_STATUS))
 
 
 class AventSoundDetected(CoordinatorEntity, BinarySensorEntity):
