@@ -327,12 +327,28 @@ class AventDeviceErrorsSensor(CoordinatorEntity, SensorEntity):
             return None
 
 
-class AventNightDurationSensor(CoordinatorEntity, SensorEntity):
-    """A single duration field of the SenseIQ nightly sleep summary."""
+def _fmt_duration(seconds: int | None) -> str | None:
+    """Human-readable "H h MM min" (or "M min" under an hour)."""
+    if seconds is None:
+        return None
+    minutes = int(seconds) // 60
+    hours, mins = divmod(minutes, 60)
+    return f"{hours} h {mins:02d} min" if hours else f"{mins} min"
 
+
+class AventNightDurationSensor(CoordinatorEntity, SensorEntity):
+    """A single duration field of the SenseIQ nightly sleep summary.
+
+    Reported in minutes (graphable/recordable). A readable "H h MM min" string
+    and the raw seconds are on the attributes.
+    """
+
+    # No DURATION device_class on purpose: it makes Home Assistant convert the
+    # value to a per-entity display unit (which stuck to seconds), fighting the
+    # readable minutes. A plain minutes measurement shows "633 min" directly, and
+    # the readable "H h MM min" string is on the `formatted` attribute.
     _attr_has_entity_name = True
-    _attr_device_class = SensorDeviceClass.DURATION
-    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
+    _attr_native_unit_of_measurement = UnitOfTime.MINUTES
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 0
 
@@ -348,10 +364,21 @@ class AventNightDurationSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{cam_id}_{key}"
         self._attr_device_info = build_device_info(coordinator, cam_id)
 
-    @property
-    def native_value(self) -> int | None:
+    def _seconds(self) -> int | None:
         day = getattr(self.coordinator, "sleep_day", None)
         return day.get(self._field) if day else None
+
+    @property
+    def native_value(self) -> int | None:
+        secs = self._seconds()
+        return round(secs / 60) if secs is not None else None
+
+    @property
+    def extra_state_attributes(self) -> dict | None:
+        secs = self._seconds()
+        if secs is None:
+            return None
+        return {"formatted": _fmt_duration(secs), "seconds": secs}
 
 
 class AventNightSleepSensor(AventNightDurationSensor):
@@ -373,6 +400,14 @@ class AventNightSleepSensor(AventNightDurationSensor):
 
         return {
             "date": day.get("date"),
+            # Readable strings (used by the morning-summary notification).
+            "formatted": _fmt_duration(day.get("asleep_seconds")),
+            "in_bed": _fmt_duration(day.get("in_bed_seconds")),
+            "deep_sleep": _fmt_duration(day.get("deep_seconds")),
+            "light_sleep": _fmt_duration(day.get("light_seconds")),
+            "awake": _fmt_duration(day.get("awake_seconds")),
+            "no_signal": _fmt_duration(day.get("no_signal_seconds")),
+            # Raw seconds (for automations / templates).
             "in_bed_seconds": day.get("in_bed_seconds"),
             "deep_sleep_seconds": day.get("deep_seconds"),
             "light_sleep_seconds": day.get("light_seconds"),
