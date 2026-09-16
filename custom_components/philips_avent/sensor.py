@@ -58,6 +58,20 @@ async def async_setup_entry(
         if DPS_DEVICE_ERRORS in dps:
             entities.append(AventDeviceErrorsSensor(coordinator, cam_id))
 
+        # Nightly sleep summary from the SenseIQ cloud aggregate. Accurate,
+        # full-night figures (unlike DPS 4 which resets mid-night). Created for
+        # SenseIQ monitors; the values fill in on the first cloud fetch.
+        if DPS_SENSEIQ_STATUS in dps:
+            entities.append(AventNightSleepSensor(coordinator, cam_id))
+            entities.append(AventNightDurationSensor(
+                coordinator, cam_id, "night_in_bed", "in_bed_seconds", "mdi:bed"))
+            entities.append(AventNightDurationSensor(
+                coordinator, cam_id, "night_deep_sleep", "deep_seconds", "mdi:sleep"))
+            entities.append(AventNightDurationSensor(
+                coordinator, cam_id, "night_light_sleep", "light_seconds", "mdi:power-sleep"))
+            entities.append(AventNightDurationSensor(
+                coordinator, cam_id, "night_awake", "awake_seconds", "mdi:sleep-off"))
+
     async_add_entities(entities)
 
 
@@ -311,3 +325,60 @@ class AventDeviceErrorsSensor(CoordinatorEntity, SensorEntity):
             return int(dps[DPS_DEVICE_ERRORS])
         except (TypeError, ValueError):
             return None
+
+
+class AventNightDurationSensor(CoordinatorEntity, SensorEntity):
+    """A single duration field of the SenseIQ nightly sleep summary."""
+
+    _attr_has_entity_name = True
+    _attr_device_class = SensorDeviceClass.DURATION
+    _attr_native_unit_of_measurement = UnitOfTime.SECONDS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 0
+
+    def __init__(
+        self, coordinator: PhilipsAventCoordinator, cam_id: str,
+        key: str, field: str, icon: str,
+    ):
+        super().__init__(coordinator)
+        self._cam_id = cam_id
+        self._field = field
+        self._attr_translation_key = key
+        self._attr_icon = icon
+        self._attr_unique_id = f"{cam_id}_{key}"
+        self._attr_device_info = build_device_info(coordinator, cam_id)
+
+    @property
+    def native_value(self) -> int | None:
+        day = getattr(self.coordinator, "sleep_day", None)
+        return day.get(self._field) if day else None
+
+
+class AventNightSleepSensor(AventNightDurationSensor):
+    """Headline nightly sleep (light + deep), with the full breakdown as attrs."""
+
+    def __init__(self, coordinator: PhilipsAventCoordinator, cam_id: str):
+        super().__init__(
+            coordinator, cam_id, "night_sleep", "asleep_seconds", "mdi:weather-night"
+        )
+
+    @property
+    def extra_state_attributes(self) -> dict | None:
+        day = getattr(self.coordinator, "sleep_day", None)
+        if not day:
+            return None
+
+        def _dt(ep):
+            return datetime.fromtimestamp(ep, tz=timezone.utc) if ep else None
+
+        return {
+            "date": day.get("date"),
+            "in_bed_seconds": day.get("in_bed_seconds"),
+            "deep_sleep_seconds": day.get("deep_seconds"),
+            "light_sleep_seconds": day.get("light_seconds"),
+            "awake_seconds": day.get("awake_seconds"),
+            "no_signal_seconds": day.get("no_signal_seconds"),
+            "in_bed_from": _dt(day.get("start")),
+            "in_bed_to": _dt(day.get("end")),
+            "session_count": day.get("session_count"),
+        }

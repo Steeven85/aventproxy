@@ -211,3 +211,101 @@ def is_session_active(
         return False
 
     return age <= stale_after_seconds
+
+
+# Stage codes in the cloud daily summary (m.solution.sleep.session.day). Same as
+# the live session plus `n` = no signal (the grey "Aucun signal" in the app).
+NIGHT_STAGE_NAMES = {"a": "awake", "l": "light", "d": "deep", "n": "no_signal"}
+NIGHT_STAGES = ("awake", "light", "deep", "no_signal")
+
+
+def decode_sleep_day(result: object, date: object = None) -> dict | None:
+    """Decode the SenseIQ daily sleep summary into night totals.
+
+    `result` is the list returned by `m.solution.sleep.session.day`: one record
+    per day, each `{"dt": YYYYMMDD, "sessions": [...], "totalSd": ...}`. Every
+    session carries `st`/`et` (in bed from/to), `sd` (time in bed) and `ssd`
+    (the full stage timeline). Aggregates all of a day's sessions.
+
+    Returns None when there is nothing to decode. Otherwise::
+
+        {
+          "date": int,                 # YYYYMMDD
+          "in_bed_seconds": int,       # sum of session sd (time in bed)
+          "asleep_seconds": int,       # light + deep
+          "light_seconds": int, "deep_seconds": int,
+          "awake_seconds": int, "no_signal_seconds": int,
+          "start": int|None, "end": int|None,   # earliest st / latest et (epoch)
+          "session_count": int,
+          "sessions": [ {start, end, in_bed_seconds, totals_seconds}, ... ],
+        }
+    """
+    if not isinstance(result, list) or not result:
+        return None
+
+    record = None
+    if date is not None:
+        for day in result:
+            if isinstance(day, dict) and str(day.get("dt")) == str(date):
+                record = day
+                break
+    if record is None:
+        dicts = [d for d in result if isinstance(d, dict)]
+        if not dicts:
+            return None
+        record = dicts[-1]
+
+    totals = {name: 0 for name in NIGHT_STAGES}
+    in_bed = 0
+    start = None
+    end = None
+    sessions_out: list[dict] = []
+
+    for session in record.get("sessions") or []:
+        if not isinstance(session, dict):
+            continue
+        st = _to_int(session.get("st"))
+        et = _to_int(session.get("et"))
+        sd = _to_nonneg_int(session.get("sd"))
+        if sd:
+            in_bed += sd
+        if st is not None and st > 0:
+            start = st if start is None else min(start, st)
+        if et is not None and et > 0:
+            end = et if end is None else max(end, et)
+
+        per = {name: 0 for name in NIGHT_STAGES}
+        for seg in session.get("ssd") or []:
+            if not isinstance(seg, dict) or len(seg) != 1:
+                continue
+            (code, seconds), = seg.items()
+            name = NIGHT_STAGE_NAMES.get(code)
+            secs = _to_nonneg_int(seconds)
+            if name is None or secs is None:
+                continue
+            totals[name] += secs
+            per[name] += secs
+
+        sessions_out.append({
+            "start": _epoch(session.get("st")),
+            "end": _epoch(session.get("et")),
+            "in_bed_seconds": sd,
+            "totals_seconds": per,
+        })
+
+    if not sessions_out:
+        return None
+
+    return {
+        "date": _to_int(record.get("dt")),
+        "in_bed_seconds": in_bed,
+        "asleep_seconds": totals["light"] + totals["deep"],
+        "light_seconds": totals["light"],
+        "deep_seconds": totals["deep"],
+        "awake_seconds": totals["awake"],
+        "no_signal_seconds": totals["no_signal"],
+        "start": _epoch(start),
+        "end": _epoch(end),
+        "session_count": len(sessions_out),
+        "sessions": sessions_out,
+    }

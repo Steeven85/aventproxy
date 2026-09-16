@@ -100,6 +100,21 @@
       },
       "device_errors": {
         "name": "Device errors"
+      },
+      "night_sleep": {
+        "name": "Sleep (night)"
+      },
+      "night_in_bed": {
+        "name": "Time in bed (night)"
+      },
+      "night_deep_sleep": {
+        "name": "Deep sleep (night)"
+      },
+      "night_light_sleep": {
+        "name": "Light sleep (night)"
+      },
+      "night_awake": {
+        "name": "Awake (night)"
       }
     },
     "binary_sensor": {

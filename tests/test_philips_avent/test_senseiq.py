@@ -100,3 +100,44 @@ def test_session_end_and_active():
     # A session far in the future is rejected as clock-skewed/malformed.
     assert senseiq.is_session_active(s, now=end - 86400) is False
     assert senseiq.is_session_active(None) is False
+
+
+# Real m.solution.sleep.session.day response captured 2026-09-16 (matches the app:
+# in bed 11h29, asleep 10h32, deep 6h09, light 4h23, awake 55min).
+SLEEP_DAY = [{"dt": 20260916, "totalSd": 41313, "sessions": [{
+    "css": "o", "cssd": 0, "et": 1789535909, "sd": 41313, "st": 1789494596, "type": "0",
+    "ssd": [{"a": 248}, {"l": 52}, {"a": 194}, {"l": 120}, {"d": 318}, {"l": 129},
+            {"d": 4475}, {"l": 805}, {"d": 3340}, {"l": 1641}, {"d": 149}, {"l": 427},
+            {"d": 1279}, {"l": 2322}, {"d": 1677}, {"l": 323}, {"d": 577}, {"l": 93},
+            {"d": 467}, {"l": 1017}, {"d": 107}, {"l": 308}, {"d": 2212}, {"l": 1507},
+            {"d": 254}, {"l": 348}, {"d": 1011}, {"l": 388}, {"d": 1212}, {"l": 1514},
+            {"d": 797}, {"l": 265}, {"d": 1475}, {"l": 407}, {"d": 367}, {"l": 144},
+            {"d": 190}, {"l": 614}, {"d": 391}, {"l": 277}, {"a": 306}, {"l": 135},
+            {"d": 232}, {"l": 541}, {"d": 721}, {"l": 276}, {"d": 937}, {"l": 1601},
+            {"a": 926}, {"l": 38}, {"a": 8}, {"l": 14}, {"a": 970}, {"l": 299},
+            {"n": 14}, {"l": 97}, {"a": 10}, {"l": 18}, {"a": 4}, {"l": 60}, {"a": 665}],
+}]}]
+
+
+def test_decode_sleep_day():
+    s = senseiq.decode_sleep_day(SLEEP_DAY, 20260916)
+    assert s is not None
+    assert s["date"] == 20260916
+    assert s["in_bed_seconds"] == 41313          # 11h29 in bed
+    assert s["deep_seconds"] == 22188            # 6h09
+    assert s["light_seconds"] == 15780           # 4h23
+    assert s["awake_seconds"] == 3331            # 55min
+    assert s["no_signal_seconds"] == 14
+    assert s["asleep_seconds"] == 15780 + 22188  # 10h32 light + deep
+    assert s["start"] == 1789494596              # 19:49
+    assert s["end"] == 1789535909                # 07:18
+    assert s["session_count"] == 1
+    # sum of every stage equals the time in bed
+    tot = sum(s[k] for k in ("light_seconds", "deep_seconds", "awake_seconds", "no_signal_seconds"))
+    assert tot == s["in_bed_seconds"]
+
+
+def test_decode_sleep_day_rejects_empty():
+    assert senseiq.decode_sleep_day([]) is None
+    assert senseiq.decode_sleep_day(None) is None
+    assert senseiq.decode_sleep_day([{"dt": 20260916, "sessions": []}]) is None
