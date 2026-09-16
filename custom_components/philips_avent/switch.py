@@ -39,11 +39,11 @@ async def async_setup_entry(
         # exposes only some of them still gets the right entities.
         dps = coordinator.data or {}
         if DPS_SENSEIQ_SWITCH in dps:
-            entities.append(AventSwitch(coordinator, cam_id, DPS_SENSEIQ_SWITCH, "SenseIQ", "mdi:baby-face-outline"))
+            entities.append(AventSwitch(coordinator, cam_id, DPS_SENSEIQ_SWITCH, None, "mdi:baby-face-outline", translation_key="senseiq"))
         if DPS_AWAKE_SWITCH in dps:
-            entities.append(AventSwitch(coordinator, cam_id, DPS_AWAKE_SWITCH, "Awake Alert", "mdi:sleep-off"))
+            entities.append(AventSwitch(coordinator, cam_id, DPS_AWAKE_SWITCH, None, "mdi:sleep-off", translation_key="awake_alert"))
         if DPS_CRY_DET_SWITCH in dps:
-            entities.append(AventSwitch(coordinator, cam_id, DPS_CRY_DET_SWITCH, "Cry Alert", "mdi:emoticon-cry-outline"))
+            entities.append(AventSwitch(coordinator, cam_id, DPS_CRY_DET_SWITCH, None, "mdi:emoticon-cry-outline", translation_key="cry_alert"))
     async_add_entities(entities)
 
 
@@ -52,12 +52,16 @@ class AventSwitch(CoordinatorEntity, SwitchEntity):
 
     def __init__(
         self, coordinator: PhilipsAventCoordinator, cam_id: str,
-        dps_id: str, name: str, icon: str,
+        dps_id: str, name: str | None, icon: str,
+        *, translation_key: str | None = None,
     ):
         super().__init__(coordinator)
         self._cam_id = cam_id
         self._dps_id = dps_id
-        self._attr_name = name
+        if translation_key is not None:
+            self._attr_translation_key = translation_key
+        else:
+            self._attr_name = name
         self._attr_icon = icon
         self._attr_unique_id = f"{cam_id}_{dps_id}"
         self._attr_device_info = build_device_info(coordinator, cam_id)

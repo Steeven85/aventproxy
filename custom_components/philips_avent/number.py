@@ -31,7 +31,7 @@ async def async_setup_entry(
         dps = coordinator.data or {}
         if DPS_AWAKE_DELAY in dps:
             entities.append(
-                AventNumber(coordinator, cam_id, DPS_AWAKE_DELAY, "Awake Alert Delay", "mdi:timer-outline", 0, 600, 30, "s")
+                AventNumber(coordinator, cam_id, DPS_AWAKE_DELAY, None, "mdi:timer-outline", 0, 600, 30, "s", translation_key="awake_alert_delay")
             )
     async_add_entities(entities)
 
@@ -41,13 +41,17 @@ class AventNumber(CoordinatorEntity, NumberEntity):
 
     def __init__(
         self, coordinator: PhilipsAventCoordinator, cam_id: str,
-        dps_id: str, name: str, icon: str,
+        dps_id: str, name: str | None, icon: str,
         min_val: float, max_val: float, step: float, unit: str,
+        *, translation_key: str | None = None,
     ):
         super().__init__(coordinator)
         self._cam_id = cam_id
         self._dps_id = dps_id
-        self._attr_name = name
+        if translation_key is not None:
+            self._attr_translation_key = translation_key
+        else:
+            self._attr_name = name
         self._attr_icon = icon
         self._attr_native_min_value = min_val
         self._attr_native_max_value = max_val

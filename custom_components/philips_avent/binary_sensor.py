@@ -179,7 +179,7 @@ class AventBabyDetected(CoordinatorEntity, BinarySensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_name = "Baby Detected"
+    _attr_translation_key = "baby_detected"
     _attr_icon = "mdi:baby-face-outline"
     _attr_device_class = BinarySensorDeviceClass.OCCUPANCY
 
@@ -279,7 +279,7 @@ class AventCryDetected(CoordinatorEntity, BinarySensorEntity):
     """
 
     _attr_has_entity_name = True
-    _attr_name = "Crying Detected"
+    _attr_translation_key = "crying_detected"
     _attr_icon = "mdi:emoticon-cry-outline"
     _attr_device_class = BinarySensorDeviceClass.SOUND
 

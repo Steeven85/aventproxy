@@ -130,7 +130,7 @@ class _SenseIQEntity(CoordinatorEntity, SensorEntity):
 class AventBreathingSensor(_SenseIQEntity):
     """Live breathing rate from DPS 3."""
 
-    _attr_name = "Breathing rate"
+    _attr_translation_key = "breathing_rate"
     _attr_native_unit_of_measurement = "breaths/min"
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:lungs"
@@ -154,7 +154,7 @@ class AventBreathingSensor(_SenseIQEntity):
 class AventSenseIQStateSensor(_SenseIQEntity):
     """Raw SenseIQ presence/state flag from DPS 3 until its vocabulary is known."""
 
-    _attr_name = "SenseIQ state"
+    _attr_translation_key = "senseiq_state"
     _attr_icon = "mdi:baby-face-outline"
 
     def __init__(self, coordinator: PhilipsAventCoordinator, cam_id: str):
@@ -189,7 +189,7 @@ class AventSenseIQStateSensor(_SenseIQEntity):
 class AventSleepStartSensor(_SenseIQEntity):
     """Start of the CURRENT SenseIQ session."""
 
-    _attr_name = "Sleeping since"
+    _attr_translation_key = "sleeping_since"
     _attr_device_class = SensorDeviceClass.TIMESTAMP
     _attr_icon = "mdi:bed-clock"
 
@@ -217,7 +217,7 @@ class AventSleepStartSensor(_SenseIQEntity):
 class AventSleepDurationSensor(_SenseIQEntity):
     """Duration of the CURRENT SenseIQ session."""
 
-    _attr_name = "Sleep duration"
+    _attr_translation_key = "sleep_duration"
     _attr_device_class = SensorDeviceClass.DURATION
     _attr_native_unit_of_measurement = UnitOfTime.SECONDS
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -256,7 +256,7 @@ class AventSleepDurationSensor(_SenseIQEntity):
 class AventSleepStageSensor(_SenseIQEntity):
     """Current stage only while DPS 4 is a live session."""
 
-    _attr_name = "Sleep stage"
+    _attr_translation_key = "sleep_stage"
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(senseiq.SLEEP_STAGES)
     _attr_icon = "mdi:power-sleep"
@@ -291,7 +291,7 @@ class AventDeviceErrorsSensor(CoordinatorEntity, SensorEntity):
     """Device error code from DPS 18 (``device_errors``): 0 means no error."""
 
     _attr_has_entity_name = True
-    _attr_name = "Device errors"
+    _attr_translation_key = "device_errors"
     _attr_icon = "mdi:alert-circle-outline"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_entity_registry_enabled_default = False
